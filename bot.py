@@ -6,6 +6,7 @@ from aiogram.enums import ParseMode
 
 from config import BOT_TOKEN
 from handlers.start import router as start_router
+from database import init_db
 
 bot = Bot(
     token=BOT_TOKEN,
@@ -13,10 +14,12 @@ bot = Bot(
 )
 
 dp = Dispatcher()
+
 dp.include_router(start_router)
 
 
 async def main():
+    await init_db()
     print("🚀 Gold Bot запущен")
     await dp.start_polling(bot)
 
