@@ -9,6 +9,4 @@ DATABASE = "database.db"
 
 START_BALANCE = 0
 
-ADMINS = [
-    123456789
-]
+ADMINS = [7894106165]
