@@ -10,3 +10,8 @@ DATABASE = "database.db"
 START_BALANCE = 0
 
 ADMINS = [7894106165]
+
+SPONSORS = [
+    "@daksiSO2",
+    "@KIgolda"
+]
