@@ -1,32 +1,31 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
 from database import add_user
+from subscriptions import check_all
+from config import ADMINS
 
 router = Router()
 
 
 # =========================
-# КНОПКИ СПОНСОРОВ
+# СПОНСОРЫ КНОПКИ
 # =========================
-def sponsors_kb():
+def sub_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📢 Спонсор 1", url="https://t.me/your_channel")],
-        [InlineKeyboardButton(text="📢 Спонсор 2", url="https://t.me/your_channel")],
-        [InlineKeyboardButton(text="📢 Спонсор 3", url="https://t.me/your_channel")],
+        [InlineKeyboardButton(text="📢 Подписаться", url="https://t.me/daksiSO2")],
+        [InlineKeyboardButton(text="📢 Подписаться", url="https://t.me/KIgolda")],
         [InlineKeyboardButton(text="Я подписался ✅", callback_data="check_sub")]
     ])
 
 
 # =========================
-# ГЛАВНОЕ МЕНЮ
+# МЕНЮ
 # =========================
-def main_menu():
+def menu():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👤 Профиль", callback_data="profile")],
         [InlineKeyboardButton(text="👥 Реферал", callback_data="ref")],
-        [InlineKeyboardButton(text="⭐ Отзывы", callback_data="reviews")],
-        [InlineKeyboardButton(text="🆘 Техподдержка", callback_data="support")],
         [InlineKeyboardButton(text="💸 Вывод", callback_data="withdraw")]
     ])
 
@@ -35,7 +34,7 @@ def main_menu():
 # /START
 # =========================
 @router.message(F.text == "/start")
-async def start_cmd(message: Message):
+async def start(message: Message):
 
     await add_user(
         message.from_user.id,
@@ -44,26 +43,36 @@ async def start_cmd(message: Message):
     )
 
     await message.answer(
-        "👋 Привет!\n\n"
-        "Чтобы зарабатывать голду, подпишись на наших спонсоров 👇",
-        reply_markup=sponsors_kb()
+        "👋 Привет!\n\nПодпишись на спонсоров чтобы продолжить:",
+        reply_markup=sub_kb()
     )
 
 
 # =========================
-# ПРОВЕРКА ПОДПИСОК (ЗАГЛУШКА)
+# ПРОВЕРКА ПОДПИСКИ
 # =========================
 @router.callback_query(F.data == "check_sub")
-async def check_sub(call: CallbackQuery):
+async def check(call: CallbackQuery, bot: Bot):
 
-    # ⚠️ ВРЕМЕННО: без Telegram API проверки каналов
-    # позже добавим real check через bot.get_chat_member
+    not_sub = await check_all(bot, call.from_user.id)
+
+    if not_sub:
+        await call.answer("❌ Вы не подписаны на всех спонсоров", show_alert=True)
+        return
 
     await call.message.delete()
 
     await call.message.answer(
         "🏠 Главное меню",
-        reply_markup=main_menu()
+        reply_markup=menu()
     )
 
     await call.answer("✅ Доступ открыт")
+
+
+# =========================
+# АВТО-БЛОК (ОТПИСКА)
+# =========================
+async def check_access(bot: Bot, user_id: int):
+    not_sub = await check_all(bot, user_id)
+    return len(not_sub) == 0
