@@ -1,5 +1,6 @@
 import asyncio
 
+from database import init_db
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
