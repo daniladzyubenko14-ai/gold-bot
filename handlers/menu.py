@@ -4,31 +4,81 @@ from aiogram.types import CallbackQuery
 router = Router()
 
 
+# ==========================
+# 👤 ПРОФИЛЬ
+# ==========================
 @router.callback_query(F.data == "profile")
-async def profile(callback: CallbackQuery):
-    await callback.answer("Раздел Профиль скоро будет готов 🚀")
+async def profile(call: CallbackQuery):
+    await call.answer()
+
+    await call.message.edit_text(
+        "👤 <b>Профиль</b>\n\n"
+        "💰 Баланс: 0.00 Gold\n"
+        "👥 Приглашено: 0 человек\n\n"
+        "🚧 Раздел находится в разработке."
+    )
 
 
-@router.callback_query(F.data == "referral")
-async def referral(callback: CallbackQuery):
-    await callback.answer("Раздел Реферал скоро будет готов 🚀")
+# ==========================
+# 👥 РЕФЕРАЛ
+# ==========================
+@router.callback_query(F.data == "ref")
+async def referral(call: CallbackQuery):
+    await call.answer()
+
+    await call.message.edit_text(
+        "👥 <b>Реферальная система</b>\n\n"
+        "🚧 Скоро здесь появится ваша реферальная ссылка."
+    )
 
 
-@router.callback_query(F.data == "reviews")
-async def reviews(callback: CallbackQuery):
-    await callback.answer("Раздел Отзывы скоро будет готов 🚀")
-
-
-@router.callback_query(F.data == "support")
-async def support(callback: CallbackQuery):
-    await callback.answer("Раздел Техподдержка скоро будет готов 🚀")
-
-
-@router.callback_query(F.data == "info")
-async def info(callback: CallbackQuery):
-    await callback.answer("Раздел Информация скоро будет готов 🚀")
-
-
+# ==========================
+# 💸 ВЫВОД
+# ==========================
 @router.callback_query(F.data == "withdraw")
-async def withdraw(callback: CallbackQuery):
-    await callback.answer("Раздел Вывод скоро будет готов 🚀")
+async def withdraw(call: CallbackQuery):
+    await call.answer()
+
+    await call.message.edit_text(
+        "💸 <b>Вывод Gold</b>\n\n"
+        "🚧 Скоро здесь можно будет оформить заявку."
+    )
+
+
+# ==========================
+# ⭐ ОТЗЫВЫ
+# ==========================
+@router.callback_query(F.data == "reviews")
+async def reviews(call: CallbackQuery):
+    await call.answer()
+
+    await call.message.edit_text(
+        "⭐ <b>Отзывы</b>\n\n"
+        "🚧 Скоро здесь будет ссылка на канал с отзывами."
+    )
+
+
+# ==========================
+# 🛠 ТЕХПОДДЕРЖКА
+# ==========================
+@router.callback_query(F.data == "support")
+async def support(call: CallbackQuery):
+    await call.answer()
+
+    await call.message.edit_text(
+        "🛠 <b>Техническая поддержка</b>\n\n"
+        "🚧 Скоро здесь будут контакты администратора."
+    )
+
+
+# ==========================
+# ℹ️ ИНФОРМАЦИЯ
+# ==========================
+@router.callback_query(F.data == "info")
+async def info(call: CallbackQuery):
+    await call.answer()
+
+    await call.message.edit_text(
+        "ℹ️ <b>Информация</b>\n\n"
+        "🚧 Скоро здесь появится информация о проекте."
+    )
