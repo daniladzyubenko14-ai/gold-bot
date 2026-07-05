@@ -12,7 +12,7 @@ router = Router()
 # =========================
 # КНОПКИ СПОНСОРОВ
 # =========================
-def subscribe_kb():
+def sponsors_kb():
     buttons = []
 
     for ch in SPONSORS:
@@ -27,13 +27,13 @@ def subscribe_kb():
 
 
 # =========================
-# МЕНЮ
+# ГЛАВНОЕ МЕНЮ
 # =========================
-def menu_kb():
+def main_menu():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👤 Профиль", callback_data="profile")],
-        [InlineKeyboardButton(text="💸 Вывод", callback_data="withdraw")],
-        [InlineKeyboardButton(text="👥 Реферал", callback_data="ref")]
+        [InlineKeyboardButton(text="👥 Реферал", callback_data="ref")],
+        [InlineKeyboardButton(text="💸 Вывод", callback_data="withdraw")]
     ])
 
 
@@ -49,14 +49,15 @@ async def start(message: Message, bot: Bot):
         message.from_user.full_name
     )
 
+    # проверка подписки
     if not await is_user_subscribed(bot, message.from_user.id):
         await message.answer(
             "👋 Чтобы пользоваться ботом, подпишитесь на спонсоров:",
-            reply_markup=subscribe_kb()
+            reply_markup=sponsors_kb()
         )
         return
 
-    await message.answer("🏠 Главное меню", reply_markup=menu_kb())
+    await message.answer("🏠 Главное меню", reply_markup=main_menu())
 
 
 # =========================
@@ -66,27 +67,27 @@ async def start(message: Message, bot: Bot):
 async def check_sub(call: CallbackQuery, bot: Bot):
 
     if not await is_user_subscribed(bot, call.from_user.id):
-        await call.answer("❌ Вы не подписались на всех", show_alert=True)
+        await call.answer("❌ Вы не подписаны на всех спонсоров", show_alert=True)
+
         await call.message.answer(
             "❌ Вы не подписаны на всех спонсоров!",
-            reply_markup=subscribe_kb()
+            reply_markup=sponsors_kb()
         )
         return
 
     await call.message.delete()
-
-    await call.message.answer("🏠 Главное меню", reply_markup=menu_kb())
+    await call.message.answer("🏠 Главное меню", reply_markup=main_menu())
     await call.answer("✅ Доступ открыт")
 
 
 # =========================
-# ЗАЩИТА (ВЫЗЫВАЙ В ДРУГИХ ФАЙЛАХ)
+# БЕЗОПАСНАЯ ПРОВЕРКА (ДЛЯ ДРУГИХ ЭКРАНОВ)
 # =========================
 async def check_access(bot: Bot, message: Message):
     if not await is_user_subscribed(bot, message.from_user.id):
         await message.answer(
             "❌ Сначала подпишитесь на спонсоров:",
-            reply_markup=subscribe_kb()
+            reply_markup=sponsors_kb()
         )
         return False
     return True
