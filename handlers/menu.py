@@ -1,14 +1,20 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
-from database import get_balance
+from database import (
+    get_balance,
+    can_take_bonus,
+    give_bonus,
+    BONUS_AMOUNT
+)
+
 from handlers.start import main_menu
 
 router = Router()
 
 
 # =========================
-# 👤 ПРОФИЛЬ
+# ПРОФИЛЬ КНОПКИ
 # =========================
 def profile_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -25,8 +31,12 @@ def profile_keyboard():
     ])
 
 
+# =========================
+# ПРОФИЛЬ
+# =========================
 @router.callback_query(F.data == "profile")
 async def profile(call: CallbackQuery):
+
     balance = await get_balance(call.from_user.id)
 
     text = (
@@ -42,90 +52,59 @@ async def profile(call: CallbackQuery):
 
 
 # =========================
-# 👥 РЕФЕРАЛ (заглушка)
+# БОНУС
 # =========================
-@router.callback_query(F.data == "ref")
-async def referral(call: CallbackQuery):
-    await call.answer()
-    await call.message.edit_text(
-        "👥 <b>РЕФЕРАЛ</b>\n\n🚧 Скоро будет готово"
+@router.callback_query(F.data == "bonus")
+async def bonus(call: CallbackQuery):
+
+    can_take, left = await can_take_bonus(call.from_user.id)
+
+    if not can_take:
+        hours = left // 3600
+        minutes = (left % 3600) // 60
+
+        await call.answer(
+            f"⏳ Осталось {hours}ч {minutes}м",
+            show_alert=True
+        )
+        return
+
+    await give_bonus(call.from_user.id)
+
+    await call.answer(
+        f"🎁 +{BONUS_AMOUNT} Gold получено!",
+        show_alert=True
     )
 
 
 # =========================
-# 💸 ВЫВОД (заглушка)
+# ПРОМОКОД (заглушка)
 # =========================
-@router.callback_query(F.data == "withdraw")
-async def withdraw(call: CallbackQuery):
-    await call.answer()
-    await call.message.edit_text(
-        "💸 <b>ВЫВОД</b>\n\n🚧 Скоро будет готово"
-    )
+@router.callback_query(F.data == "promo")
+async def promo(call: CallbackQuery):
+    await call.answer("Промокоды скоро будут 🚀", show_alert=True)
 
 
 # =========================
-# ⭐ ОТЗЫВЫ (заглушка)
+# ИНСТРУКЦИЯ (заглушка)
 # =========================
-@router.callback_query(F.data == "reviews")
-async def reviews(call: CallbackQuery):
-    await call.answer()
-    await call.message.edit_text(
-        "⭐ <b>ОТЗЫВЫ</b>\n\n🚧 Скоро будет готово"
-    )
+@router.callback_query(F.data == "instruction")
+async def instruction(call: CallbackQuery):
+    await call.answer("Инструкция скоро будет 🚀", show_alert=True)
 
 
 # =========================
-# 🛠 ПОДДЕРЖКА (заглушка)
-# =========================
-@router.callback_query(F.data == "support")
-async def support(call: CallbackQuery):
-    await call.answer()
-    await call.message.edit_text(
-        "🛠 <b>ТЕХПОДДЕРЖКА</b>\n\n🚧 Скоро будет готово"
-    )
-
-
-# =========================
-# ℹ️ ИНФОРМАЦИЯ (заглушка)
-# =========================
-@router.callback_query(F.data == "info")
-async def info(call: CallbackQuery):
-    await call.answer()
-    await call.message.edit_text(
-        "ℹ️ <b>ИНФОРМАЦИЯ</b>\n\n🚧 Скоро будет готово"
-    )
-
-
-# =========================
-# ⬅️ НАЗАД В МЕНЮ
+# НАЗАД В МЕНЮ
 # =========================
 @router.callback_query(F.data == "back_menu")
 async def back_menu(call: CallbackQuery):
-    await call.answer()
+
     await call.message.edit_text(
         "✨ Добро пожаловать в Gold Bot!\n\n"
         "━━━━━━━━━━━━━━━━━━\n\n"
-        "💎 Здесь вы можете зарабатывать Gold, выполняя простые действия.\n\n"
+        "💎 Здесь вы можете зарабатывать Gold\n\n"
         "━━━━━━━━━━━━━━━━━━",
         reply_markup=main_menu()
     )
 
-
-# =========================
-# 🎁 БОНУС (пока заглушка)
-# =========================
-@router.callback_query(F.data == "bonus")
-async def bonus(call: CallbackQuery):
-    await call.answer("Бонус скоро будет добавлен 🚀", show_alert=True)
-
-
-# =========================
-# 🎫 ПРОМОКОД (пока заглушка)
-# =========================
-@router.callback_query(F.data == "promo")
-async def promo(call: CallbackQuery):
-    await call.answer("Промокоды скоро будут добавлены 🚀", show_alert=True)
-
-
-# =========================
-# 📖
+    await call.answer()
