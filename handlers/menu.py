@@ -52,7 +52,7 @@ async def profile(call: CallbackQuery):
 
 
 # =========================
-# БОНУС
+# БОНУС (С АВТООБНОВЛЕНИЕМ ПРОФИЛЯ)
 # =========================
 @router.callback_query(F.data == "bonus")
 async def bonus(call: CallbackQuery):
@@ -71,10 +71,20 @@ async def bonus(call: CallbackQuery):
 
     await give_bonus(call.from_user.id)
 
-    await call.answer(
-        f"🎁 +{BONUS_AMOUNT} Gold получено!",
-        show_alert=True
+    await call.answer(f"🎁 +{BONUS_AMOUNT} Gold получено!", show_alert=True)
+
+    # 🔥 ОБНОВЛЕНИЕ ПРОФИЛЯ СРАЗУ
+    balance = await get_balance(call.from_user.id)
+
+    text = (
+        "👤 <b>ПРОФИЛЬ</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━\n\n"
+        f"💰 Баланс: <b>{balance:.2f} Gold</b>\n"
+        "👥 Приглашено: <b>0</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━"
     )
+
+    await call.message.edit_text(text, reply_markup=profile_keyboard())
 
 
 # =========================
