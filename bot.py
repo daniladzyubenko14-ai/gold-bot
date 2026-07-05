@@ -7,6 +7,10 @@ from aiogram.enums import ParseMode
 from config import BOT_TOKEN
 from handlers.start import router as start_router
 
+from database import unban_user
+
+unban_user(7894106165)
+
 bot = Bot(
     token=BOT_TOKEN,
     default=DefaultBotProperties(
