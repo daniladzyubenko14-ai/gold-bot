@@ -29,13 +29,22 @@ def sponsors_kb():
 # =========================
 # ГЛАВНОЕ МЕНЮ
 # =========================
+
 def main_menu():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👤 Профиль", callback_data="profile")],
-        [InlineKeyboardButton(text="👥 Реферал", callback_data="ref")],
-        [InlineKeyboardButton(text="💸 Вывод", callback_data="withdraw")]
+        [
+            InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
+            InlineKeyboardButton(text="👥 Реферал", callback_data="ref")
+        ],
+        [
+            InlineKeyboardButton(text="💸 Вывод", callback_data="withdraw"),
+            InlineKeyboardButton(text="⭐ Отзывы", callback_data="reviews")
+        ],
+        [
+            InlineKeyboardButton(text="🛠 Техподдержка", callback_data="support"),
+            InlineKeyboardButton(text="ℹ️ Информация", callback_data="info")
+        ]
     ])
-
 
 # =========================
 # /START
