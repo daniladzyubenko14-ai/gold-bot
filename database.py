@@ -5,7 +5,7 @@ from config import DATABASE, START_BALANCE
 
 
 # =========================
-# ИНИЦИАЛИЗАЦИЯ БД
+# INIT DB
 # =========================
 async def init_db():
     async with aiosqlite.connect(DATABASE) as db:
@@ -23,7 +23,7 @@ async def init_db():
 
 
 # =========================
-# ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
+# ADD USER
 # =========================
 async def add_user(user_id, username, full_name):
     async with aiosqlite.connect(DATABASE) as db:
@@ -34,16 +34,16 @@ async def add_user(user_id, username, full_name):
         if not await cur.fetchone():
             await db.execute(
                 """
-                INSERT INTO users (user_id, username, full_name, balance)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO users (user_id, username, full_name, balance, last_bonus)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (user_id, username, full_name, float(START_BALANCE))
+                (user_id, username, full_name, float(START_BALANCE), 0.0)
             )
             await db.commit()
 
 
 # =========================
-# БАЛАНС
+# BALANCE
 # =========================
 async def get_balance(user_id: int):
     async with aiosqlite.connect(DATABASE) as db:
@@ -52,20 +52,24 @@ async def get_balance(user_id: int):
             (user_id,)
         )
         row = await cur.fetchone()
-        return round(float(row[0]), 2) if row else 0.00
+
+        if not row:
+            return 0.00
+
+        return round(float(row[0]), 2)
 
 
 async def add_balance(user_id: int, amount: float):
     async with aiosqlite.connect(DATABASE) as db:
         await db.execute(
             "UPDATE users SET balance = balance + ? WHERE user_id=?",
-            (amount, user_id)
+            (float(amount), user_id)
         )
         await db.commit()
 
 
 # =========================
-# БОНУС СИСТЕМА
+# BONUS SYSTEM
 # =========================
 BONUS_AMOUNT = 0.5
 BONUS_COOLDOWN = 12 * 60 * 60  # 12 часов
@@ -82,13 +86,15 @@ async def can_take_bonus(user_id: int):
         if not row:
             return True, 0
 
-        last = row[0] or 0
+        last_bonus = float(row[0] or 0)
         now = time.time()
 
-        if now - last >= BONUS_COOLDOWN:
+        remaining = BONUS_COOLDOWN - (now - last_bonus)
+
+        if remaining <= 0:
             return True, 0
 
-        return False, int(BONUS_COOLDOWN - (now - last))
+        return False, int(remaining)
 
 
 async def give_bonus(user_id: int):
