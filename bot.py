@@ -5,12 +5,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from config import BOT_TOKEN
-from database import unban_user
 from handlers.start import router as start_router
-
-# 🔥 РАЗБАН ТЕБЯ (один раз при запуске)
-unban_user(7894106165)
-print("UNBANNED")
 
 bot = Bot(
     token=BOT_TOKEN,
@@ -20,12 +15,11 @@ bot = Bot(
 )
 
 dp = Dispatcher()
-
 dp.include_router(start_router)
 
 
 async def main():
-    print("🚀 Bot started")
+    print("🚀 Gold Bot запущен")
     await dp.start_polling(bot)
 
 
