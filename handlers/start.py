@@ -12,25 +12,25 @@ router = Router()
 async def start_handler(message: Message):
     user_id = message.from_user.id
 
-    # Регистрация пользователя
-    await add_user(
+    # регистрация
+    add_user(
         user_id,
         message.from_user.username or "",
         message.from_user.full_name
     )
 
-    # Проверка на бан
-    if await is_banned(user_id):
+    # бан
+    if is_banned(user_id):
         await message.answer("⛔ Вы заблокированы.")
         return
 
-    # Проверка режима техобслуживания
-    if await maintenance_enabled() and user_id not in ADMINS:
-        await message.answer("🛠 Бот находится на техническом обслуживании.")
+    # техработы
+    if maintenance_enabled() and user_id not in ADMINS:
+        await message.answer("🛠 Бот на техобслуживании.")
         return
 
-    # Получаем баланс
-    balance = await get_balance(user_id)
+    # баланс
+    balance = get_balance(user_id)
 
     await message.answer(
         f"👋 Привет, <b>{message.from_user.full_name}</b>!\n\n"
