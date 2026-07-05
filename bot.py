@@ -5,9 +5,10 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from config import BOT_TOKEN
-from database import init_db   # ✅ важно
+from database import init_db
 
 from handlers.start import router as start_router
+from handlers.menu import router as menu_router
 
 
 bot = Bot(
@@ -18,11 +19,13 @@ bot = Bot(
 )
 
 dp = Dispatcher()
+
 dp.include_router(start_router)
+dp.include_router(menu_router)
 
 
 async def main():
-    await init_db()   # 🔥 ВОТ ЭТО ОБЯЗАТЕЛЬНО
+    await init_db()
     print("🚀 Gold Bot запущен")
     await dp.start_polling(bot)
 
