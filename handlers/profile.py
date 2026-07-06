@@ -109,11 +109,8 @@ async def promo(call: CallbackQuery):
 # =========================
 # ВВОД ПРОМОКОДА
 # =========================
-@router.message()
+@router.message(lambda m: m.from_user.id in user_states and user_states[m.from_user.id] == "waiting_promo")
 async def handle_promo(message: Message):
-
-    if user_states.get(message.from_user.id) != "waiting_promo":
-        return
 
     code = message.text.strip().upper()
 
