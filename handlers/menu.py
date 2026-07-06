@@ -10,10 +10,22 @@ router = Router()
 @router.callback_query(F.data == "ref")
 async def referral(call: CallbackQuery):
 
-    await call.answer(
-        "🚧 Реферальная система скоро будет.",
-        show_alert=True
+    from database import get_ref_info
+
+@router.callback_query(F.data == "ref")
+async def referral(call: CallbackQuery):
+
+    count = await get_ref_info(call.from_user.id)
+
+    link = f"https://t.me/Kigold_bot?start={call.from_user.id}"
+
+    await call.message.edit_text(
+        f"👥 <b>РЕФЕРАЛКА</b>\n\n"
+        f"👤 Приглашено: {count}\n\n"
+        f"🔗 Ссылка:\n{link}"
     )
+
+    await call.answer() 
 
 
 # =========================
