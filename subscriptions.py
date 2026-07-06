@@ -1,18 +1,30 @@
 from aiogram import Bot
+from aiogram.enums import ChatMemberStatus
+
 from config import SPONSORS
 
 
-async def check_channel(bot: Bot, user_id: int, channel: str):
-    try:
-        member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
-        return member.status in ["member", "administrator", "creator"]
-    except:
-        return False
+async def is_user_subscribed(
+    bot: Bot,
+    user_id: int
+) -> bool:
 
+    for channel in SPONSORS:
 
-async def is_user_subscribed(bot: Bot, user_id: int) -> bool:
-    for ch in SPONSORS:
-        ok = await check_channel(bot, user_id, ch)
-        if not ok:
+        try:
+
+            member = await bot.get_chat_member(
+                channel,
+                user_id
+            )
+
+            if member.status in (
+                ChatMemberStatus.LEFT,
+                ChatMemberStatus.KICKED
+            ):
+                return False
+
+        except Exception:
             return False
+
     return True
