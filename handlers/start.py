@@ -1,4 +1,4 @@
-from aiogram import Router, Bot, F
+from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart
 from aiogram.types import (
     Message,
@@ -7,7 +7,7 @@ from aiogram.types import (
     InlineKeyboardButton
 )
 
-from database import add_user, is_banned
+from database import add_user
 from subscriptions import is_user_subscribed
 from config import SPONSORS
 
@@ -17,11 +17,12 @@ router = Router()
 # =========================
 # КНОПКИ СПОНСОРОВ
 # =========================
-def sponsors_keyboard():
+def sponsors_kb():
 
     buttons = []
 
     for sponsor in SPONSORS:
+
         buttons.append([
             InlineKeyboardButton(
                 text=f"📢 {sponsor}",
@@ -31,7 +32,7 @@ def sponsors_keyboard():
 
     buttons.append([
         InlineKeyboardButton(
-            text="✅ Проверить подписку",
+            text="✅ Я подписался",
             callback_data="check_sub"
         )
     ])
@@ -94,11 +95,6 @@ def main_menu():
 @router.message(CommandStart())
 async def start(message: Message, bot: Bot):
 
-    if await is_banned(message.from_user.id):
-        return await message.answer(
-            "⛔ Вы заблокированы."
-        )
-
     await add_user(
         message.from_user.id,
         message.from_user.username or "",
@@ -110,10 +106,11 @@ async def start(message: Message, bot: Bot):
         message.from_user.id
     ):
 
-        return await message.answer(
+        await message.answer(
             "❗ Для использования бота подпишитесь на всех спонсоров.",
-            reply_markup=sponsors_keyboard()
+            reply_markup=sponsors_kb()
         )
+        return
 
     await message.answer(
         "🏠 Главное меню",
@@ -132,16 +129,15 @@ async def check_sub(call: CallbackQuery, bot: Bot):
         call.from_user.id
     ):
 
-        return await call.answer(
+        await call.answer(
             "❌ Вы подписались не на все каналы.",
             show_alert=True
         )
+        return
 
     await call.message.edit_text(
         "🏠 Главное меню",
         reply_markup=main_menu()
     )
 
-    await call.answer(
-        "✅ Проверка успешно пройдена!"
-    )
+    await call.answer("✅ Доступ открыт")
