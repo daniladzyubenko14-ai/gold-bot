@@ -17,13 +17,28 @@ async def init_db():
     print("DATABASE_URL =", DATABASE_URL)
 
     if not DATABASE_URL:
-        raise RuntimeError(
-            "❌ DATABASE_URL не найден!"
-        )
+        raise RuntimeError("❌ DATABASE_URL не найден!")
 
     pool = await asyncpg.create_pool(DATABASE_URL)
 
     async with pool.acquire() as conn:
+
+        # УБИРАЕМ СТАРЫЙ БАГ
+        await conn.execute("""
+        ALTER TABLE promocodes
+        DROP COLUMN IF EXISTS uses_left;
+        """)
+
+        # ДОБАВЛЯЕМ ПРАВИЛЬНЫЕ КОЛОНКИ
+        await conn.execute("""
+        ALTER TABLE promocodes
+        ADD COLUMN IF NOT EXISTS uses INTEGER DEFAULT 0;
+        """)
+
+        await conn.execute("""
+        ALTER TABLE promocodes
+        ADD COLUMN IF NOT EXISTS max_uses INTEGER DEFAULT 1;
+        """)
 
         # =========================
         # USERS
