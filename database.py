@@ -30,19 +30,40 @@ async def init_db():
 
     async with pool.acquire() as conn:
 
-        # =========================
-        # USERS
-        # =========================
-        await conn.execute("""
-        CREATE TABLE IF NOT EXISTS users(
-            user_id BIGINT PRIMARY KEY,
-            username TEXT,
-            full_name TEXT,
-            balance DOUBLE PRECISION DEFAULT 0,
-            banned BOOLEAN DEFAULT FALSE,
-            last_bonus DOUBLE PRECISION DEFAULT 0
-        )
-        """)
+# =========================
+# USERS
+# =========================
+
+await conn.execute("""
+CREATE TABLE IF NOT EXISTS users(
+    user_id BIGINT PRIMARY KEY,
+    username TEXT,
+    full_name TEXT,
+    balance DOUBLE PRECISION DEFAULT 0,
+    banned BOOLEAN DEFAULT FALSE,
+    last_bonus DOUBLE PRECISION DEFAULT 0,
+
+    referrer_id BIGINT,
+    referrals INTEGER DEFAULT 0,
+    ref_rewarded BOOLEAN DEFAULT FALSE
+)
+""")
+
+# Если таблица уже существует — добавляем недостающие столбцы
+await conn.execute("""
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS referrer_id BIGINT
+""")
+
+await conn.execute("""
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS referrals INTEGER DEFAULT 0
+""")
+
+await conn.execute("""
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS ref_rewarded BOOLEAN DEFAULT FALSE
+""") 
 
         # =========================
         # PROMOCODES
@@ -358,3 +379,104 @@ async def is_banned(user_id):
             return False
 
         return bool(row["banned"])
+
+# =========================
+# РЕФЕРАЛЬНАЯ СИСТЕМА
+# =========================
+
+REF_REWARD = 0.5
+
+
+async def set_referrer(user_id: int, referrer_id: int):
+
+    if user_id == referrer_id:
+        return
+
+    async with pool.acquire() as conn:
+
+        row = await conn.fetchrow(
+            """
+            SELECT referrer_id
+            FROM users
+            WHERE user_id=$1
+            """,
+            user_id
+        )
+
+        if not row:
+            return
+
+        if row["referrer_id"] is not None:
+            return
+
+        await conn.execute(
+            """
+            UPDATE users
+            SET referrer_id=$1
+            WHERE user_id=$2
+            """,
+            referrer_id,
+            user_id
+        )
+
+
+async def reward_referrer(user_id: int):
+
+    async with pool.acquire() as conn:
+
+        row = await conn.fetchrow(
+            """
+            SELECT referrer_id, ref_rewarded
+            FROM users
+            WHERE user_id=$1
+            """,
+            user_id
+        )
+
+        if not row:
+            return
+
+        if row["ref_rewarded"]:
+            return
+
+        if row["referrer_id"] is None:
+            return
+
+        await conn.execute(
+            """
+            UPDATE users
+            SET balance = balance + $1,
+                referrals = referrals + 1
+            WHERE user_id=$2
+            """,
+            REF_REWARD,
+            row["referrer_id"]
+        )
+
+        await conn.execute(
+            """
+            UPDATE users
+            SET ref_rewarded=TRUE
+            WHERE user_id=$1
+            """,
+            user_id
+        )
+
+
+async def get_ref_info(user_id: int):
+
+    async with pool.acquire() as conn:
+
+        row = await conn.fetchrow(
+            """
+            SELECT referrals
+            FROM users
+            WHERE user_id=$1
+            """,
+            user_id
+        )
+
+        if not row:
+            return 0
+
+        return row["referrals"]
