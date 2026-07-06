@@ -1,103 +1,73 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.fsm.context import FSMContext
 
-from database import (
-    get_balance,
-    can_take_bonus,
-    give_bonus,
-    activate_promo,
-    BONUS_AMOUNT
-)
-
-from handlers.start import main_menu
+from database import get_balance, activate_promo
 
 router = Router()
 
+# =========================
+# КНОПКИ
+# =========================
+def profile_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🎁 Бонус", callback_data="bonus"),
+            InlineKeyboardButton(text="🎫 Промокод", callback_data="promo")
+        ],
+        [
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="back_menu")
+        ]
+    ])
+
 
 # =========================
-# FSM
-# =========================
-class PromoState(StatesGroup):
-    waiting_code = State()
-
-
-# =========================
-# PROFILE
+# ПРОФИЛЬ
 # =========================
 @router.callback_query(F.data == "profile")
 async def profile(call: CallbackQuery):
-
     balance = await get_balance(call.from_user.id)
 
     await call.message.edit_text(
-        f"👤 Профиль\n\n💰 Баланс: {balance:.2f} Gold",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(text="🎁 Бонус", callback_data="bonus"),
-                InlineKeyboardButton(text="🎫 Промокод", callback_data="promo")
-            ],
-            [
-                InlineKeyboardButton(text="⬅️ Назад", callback_data="back_menu")
-            ]
-        ])
+        f"👤 <b>Профиль</b>\n\n💰 Баланс: {balance:.2f} Gold",
+        reply_markup=profile_keyboard()
     )
+    await call.answer()
 
 
 # =========================
-# BONUS
-# =========================
-@router.callback_query(F.data == "bonus")
-async def bonus(call: CallbackQuery):
-
-    ok, left = await can_take_bonus(call.from_user.id)
-
-    if not ok:
-        await call.answer("⏳ Подожди немного", show_alert=True)
-        return
-
-    await give_bonus(call.from_user.id)
-
-    await call.answer(f"🎁 +{BONUS_AMOUNT} Gold", show_alert=True)
-
-
-# =========================
-# PROMO START
+# НАЖАЛ ПРОМОКОД
 # =========================
 @router.callback_query(F.data == "promo")
-async def promo(call: CallbackQuery, state: FSMContext):
-
-    await state.set_state(PromoState.waiting_code)
-
+async def promo(call: CallbackQuery):
     await call.message.answer("🎫 Введите промокод:")
+    await call.answer()
 
 
 # =========================
-# PROMO INPUT
+# ВВОД ПРОМОКОДА (ВАЖНЫЙ ХЕНДЛЕР)
 # =========================
-@router.message(PromoState.waiting_code)
-async def promo_input(message: Message, state: FSMContext):
+@router.message(F.text)
+async def promo_input(message: Message):
 
     code = message.text.strip().upper()
 
-    status, reward = await activate_promo(message.from_user.id, code)
+    # защита от случайного спама
+    if len(code) < 2:
+        return
 
-    if status == "success":
-        await message.answer(f"🎉 +{reward} Gold")
-    elif status == "already_used":
-        await message.answer("⚠️ Уже использован")
-    elif status == "no_uses":
-        await message.answer("❌ Лимит исчерпан")
+    result, reward = await activate_promo(message.from_user.id, code)
+
+    if result == "success":
+        await message.answer(f"🎉 Промокод активирован! +{reward} Gold")
+
+    elif result == "already_used":
+        await message.answer("⚠️ Ты уже использовал этот промокод")
+
+    elif result == "no_uses":
+        await message.answer("❌ Лимит промокода исчерпан")
+
+    elif result == "not_found":
+        await message.answer("❌ Промокод не существует")
+
     else:
-        await message.answer("❌ Не существует")
-
-    await state.clear()
-
-
-# =========================
-# BACK
-# =========================
-@router.callback_query(F.data == "back_menu")
-async def back(call: CallbackQuery):
-    await call.message.edit_text("Главное меню", reply_markup=main_menu())
+        await message.answer("❌ Ошибка")
