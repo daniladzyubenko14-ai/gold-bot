@@ -1,11 +1,19 @@
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    Message
+)
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.context import FSMContext
 
 from database import (
     get_balance,
     can_take_bonus,
     give_bonus,
-    BONUS_AMOUNT
+    BONUS_AMOUNT,
+    activate_promo
 )
 
 from handlers.start import main_menu
@@ -14,21 +22,42 @@ router = Router()
 
 
 # =========================
-# ПРОФИЛЬ КНОПКИ
+# FSM
+# =========================
+class PromoState(StatesGroup):
+    waiting_code = State()
+
+
+# =========================
+# КНОПКИ ПРОФИЛЯ
 # =========================
 def profile_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🎁 Бонус", callback_data="bonus"),
-            InlineKeyboardButton(text="🎫 Промокод", callback_data="promo")
-        ],
-        [
-            InlineKeyboardButton(text="📖 Инструкция", callback_data="instruction")
-        ],
-        [
-            InlineKeyboardButton(text="⬅️ Назад", callback_data="back_menu")
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🎁 Бонус",
+                    callback_data="bonus"
+                ),
+                InlineKeyboardButton(
+                    text="🎫 Промокод",
+                    callback_data="promo"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="📖 Инструкция",
+                    callback_data="instruction"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="⬅️ Назад",
+                    callback_data="back_menu"
+                )
+            ]
         ]
-    ])
+    )
 
 
 # =========================
@@ -47,19 +76,26 @@ async def profile(call: CallbackQuery):
         "━━━━━━━━━━━━━━━━━━"
     )
 
-    await call.message.edit_text(text, reply_markup=profile_keyboard())
+    await call.message.edit_text(
+        text,
+        reply_markup=profile_keyboard()
+    )
+
     await call.answer()
 
 
 # =========================
-# БОНУС (С АВТООБНОВЛЕНИЕМ ПРОФИЛЯ)
+# БОНУС
 # =========================
 @router.callback_query(F.data == "bonus")
 async def bonus(call: CallbackQuery):
 
-    can_take, left = await can_take_bonus(call.from_user.id)
+    can_take, left = await can_take_bonus(
+        call.from_user.id
+    )
 
     if not can_take:
+
         hours = left // 3600
         minutes = (left % 3600) // 60
 
@@ -71,10 +107,14 @@ async def bonus(call: CallbackQuery):
 
     await give_bonus(call.from_user.id)
 
-    await call.answer(f"🎁 +{BONUS_AMOUNT} Gold получено!", show_alert=True)
+    await call.answer(
+        f"🎁 +{BONUS_AMOUNT} Gold получено!",
+        show_alert=True
+    )
 
-    # 🔥 ОБНОВЛЕНИЕ ПРОФИЛЯ СРАЗУ
-    balance = await get_balance(call.from_user.id)
+    balance = await get_balance(
+        call.from_user.id
+    )
 
     text = (
         "👤 <b>ПРОФИЛЬ</b>\n\n"
@@ -84,27 +124,84 @@ async def bonus(call: CallbackQuery):
         "━━━━━━━━━━━━━━━━━━"
     )
 
-    await call.message.edit_text(text, reply_markup=profile_keyboard())
+    await call.message.edit_text(
+        text,
+        reply_markup=profile_keyboard()
+    )
 
 
 # =========================
-# ПРОМОКОД (заглушка)
+# ПРОМОКОД
 # =========================
 @router.callback_query(F.data == "promo")
-async def promo(call: CallbackQuery):
-    await call.answer("Промокоды скоро будут 🚀", show_alert=True)
+async def promo(call: CallbackQuery, state: FSMContext):
+
+    await state.set_state(
+        PromoState.waiting_code
+    )
+
+    await call.message.answer(
+        "🎫 <b>Активация промокода</b>\n\n"
+        "Введите промокод одним сообщением."
+    )
+
+    await call.answer()
+ # =========================
+# ВВОД ПРОМОКОДА
+# =========================
+@router.message(PromoState.waiting_code)
+async def promo_enter(message: Message, state: FSMContext):
+
+    code = message.text.strip().upper()
+
+    status, reward = await activate_promo(
+        message.from_user.id,
+        code
+    )
+
+    if status == "success":
+        await message.answer(
+            f"✅ <b>Промокод успешно активирован!</b>\n\n"
+            f"💰 Начислено: <b>{reward:.2f} Gold</b>"
+        )
+
+    elif status == "already_used":
+        await message.answer(
+            "❌ Вы уже активировали этот промокод."
+        )
+
+    elif status == "not_found":
+        await message.answer(
+            "❌ Такого промокода не существует."
+        )
+
+    elif status == "no_uses":
+        await message.answer(
+            "❌ Лимит активаций этого промокода закончился."
+        )
+
+    else:
+        await message.answer(
+            "❌ Не удалось активировать промокод."
+        )
+
+    await state.clear()
 
 
 # =========================
-# ИНСТРУКЦИЯ (заглушка)
+# ИНСТРУКЦИЯ
 # =========================
 @router.callback_query(F.data == "instruction")
 async def instruction(call: CallbackQuery):
-    await call.answer("Инструкция скоро будет 🚀", show_alert=True)
+
+    await call.answer(
+        "📖 Инструкция скоро появится.",
+        show_alert=True
+    )
 
 
 # =========================
-# НАЗАД В МЕНЮ
+# НАЗАД
 # =========================
 @router.callback_query(F.data == "back_menu")
 async def back_menu(call: CallbackQuery):
