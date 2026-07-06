@@ -1,5 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
+from database import get_ref_info
 
 router = Router()
 
@@ -7,11 +8,6 @@ router = Router()
 # =========================
 # РЕФЕРАЛЫ
 # =========================
-@router.callback_query(F.data == "ref")
-async def referral(call: CallbackQuery):
-
-    from database import get_ref_info
-
 @router.callback_query(F.data == "ref")
 async def referral(call: CallbackQuery):
 
