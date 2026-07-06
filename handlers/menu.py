@@ -1,6 +1,12 @@
 from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton
+)
+
 from database import get_ref_info
+from handlers.start import main_menu
 
 router = Router()
 
@@ -15,13 +21,39 @@ async def referral(call: CallbackQuery):
 
     link = f"https://t.me/Kigold_bot?start={call.from_user.id}"
 
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="⬅️ Назад",
+                    callback_data="back_menu"
+                )
+            ]
+        ]
+    )
+
     await call.message.edit_text(
         f"👥 <b>РЕФЕРАЛКА</b>\n\n"
         f"👤 Приглашено: {count}\n\n"
-        f"🔗 Ссылка:\n{link}"
+        f"🔗 Ссылка:\n{link}",
+        reply_markup=keyboard
     )
 
-    await call.answer() 
+    await call.answer()
+
+
+# =========================
+# НАЗАД В МЕНЮ
+# =========================
+@router.callback_query(F.data == "back_menu")
+async def back_menu(call: CallbackQuery):
+
+    await call.message.edit_text(
+        "🏠 Главное меню",
+        reply_markup=main_menu()
+    )
+
+    await call.answer()
 
 
 # =========================
