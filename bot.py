@@ -5,10 +5,6 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from config import BOT_TOKEN
-
-# =========================
-# DATABASE
-# =========================
 from database import init_db
 
 # =========================
@@ -16,24 +12,23 @@ from database import init_db
 # =========================
 from handlers.start import router as start_router
 from handlers.menu import router as menu_router
+from handlers.profile import router as profile_router
 from handlers.admin import router as admin_router
-from handlers.profile import router as profile_router  # если есть профиль
+
 
 # =========================
 # BOT INIT
 # =========================
 bot = Bot(
     token=BOT_TOKEN,
-    default=DefaultBotProperties(
-        parse_mode=ParseMode.HTML
-    )
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 
 dp = Dispatcher()
 
 
 # =========================
-# ROUTERS (ВАЖНО: ВСЕ ПОДКЛЮЧАЕМ)
+# ROUTERS (ВАЖНО: ПРАВИЛЬНЫЙ ПОРЯДОК)
 # =========================
 dp.include_router(start_router)
 dp.include_router(menu_router)
@@ -47,6 +42,10 @@ dp.include_router(admin_router)
 async def main():
     await init_db()
     print("🚀 Gold Bot запущен")
+
+    # 🔥 ВАЖНО: чтобы не было дублей на Railway
+    await bot.delete_webhook(drop_pending_updates=True)
+
     await dp.start_polling(bot)
 
 
