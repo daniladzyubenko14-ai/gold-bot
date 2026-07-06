@@ -73,30 +73,31 @@ async def start(message: Message, bot: Bot):
 
     user_id = message.from_user.id
 
+    
     # =========================
-    # РЕФЕРАЛ КОД
-    # =========================
-    args = message.text.split()
+# СОЗДАНИЕ ЮЗЕРА
+# =========================
+await add_user(
+    user_id,
+    message.from_user.username or "",
+    message.from_user.full_name
+)
 
-    if len(args) > 1:
+# =========================
+# РЕФЕРАЛ КОД
+# =========================
+args = message.text.split()
 
-        try:
-            ref_id = int(args[1])
+if len(args) > 1:
 
-            # сохраняем реферала (ТОЛЬКО 1 РАЗ)
-            await set_referrer(user_id, ref_id)
+    try:
+        ref_id = int(args[1])
 
-        except:
-            pass
+        # сохраняем пригласившего (только один раз)
+        await set_referrer(user_id, ref_id)
 
-    # =========================
-    # СОЗДАНИЕ ЮЗЕРА
-    # =========================
-    await add_user(
-        user_id,
-        message.from_user.username or "",
-        message.from_user.full_name
-    )
+    except:
+        pass
 
     # =========================
     # ПРОВЕРКА ПОДПИСОК
