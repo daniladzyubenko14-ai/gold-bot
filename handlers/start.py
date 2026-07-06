@@ -67,38 +67,32 @@ def main_menu():
 # =========================
 # START (РЕФЕРАЛ + ПОДПИСКА)
 # =========================
-
 @router.message(CommandStart())
 async def start(message: Message, bot: Bot):
 
     user_id = message.from_user.id
 
-    
     # =========================
-# СОЗДАНИЕ ЮЗЕРА
-# =========================
-await add_user(
-    user_id,
-    message.from_user.username or "",
-    message.from_user.full_name
-)
+    # СОЗДАНИЕ ЮЗЕРА
+    # =========================
+    await add_user(
+        user_id,
+        message.from_user.username or "",
+        message.from_user.full_name
+    )
 
-# =========================
-# РЕФЕРАЛ КОД
-# =========================
-args = message.text.split()
+    # =========================
+    # РЕФЕРАЛ КОД
+    # =========================
+    args = message.text.split()
 
-if len(args) > 1:
-
-    try:
-        ref_id = int(args[1])
-
-        # сохраняем пригласившего (только один раз)
-        await set_referrer(user_id, ref_id)
-
-    except:
-        pass
-
+    if len(args) > 1:
+        try:
+            ref_id = int(args[1])
+            await set_referrer(user_id, ref_id)
+        except:
+            pass
+ 
     # =========================
     # ПРОВЕРКА ПОДПИСОК
     # =========================
