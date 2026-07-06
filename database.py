@@ -7,6 +7,9 @@ from config import START_BALANCE
 pool = None
 
 
+# =========================
+# INIT DB
+# =========================
 async def init_db():
     global pool
 
@@ -53,6 +56,24 @@ async def init_db():
 
 
 # =========================
+# ADD USER
+# =========================
+async def add_user(user_id, username, full_name):
+    async with pool.acquire() as conn:
+        await conn.execute("""
+        INSERT INTO users(user_id, username, full_name, balance, last_bonus)
+        VALUES($1,$2,$3,$4,$5)
+        ON CONFLICT (user_id) DO NOTHING
+        """,
+        user_id,
+        username,
+        full_name,
+        float(START_BALANCE),
+        0.0
+        )
+
+
+# =========================
 # BALANCE
 # =========================
 async def get_balance(user_id: int):
@@ -65,78 +86,37 @@ async def get_balance(user_id: int):
 
 
 # =========================
-# CREATE PROMO
+# BONUS
 # =========================
-async def create_promo(code: str, reward: float, max_uses: int):
+BONUS_AMOUNT = 0.5
+BONUS_COOLDOWN = 12 * 60 * 60
 
-    code = code.upper()
 
+async def can_take_bonus(user_id: int):
     async with pool.acquire() as conn:
-        await conn.execute("""
-        INSERT INTO promocodes(code, reward, max_uses)
-        VALUES($1,$2,$3)
-        ON CONFLICT(code)
-        DO UPDATE SET
-            reward=EXCLUDED.reward,
-            max_uses=EXCLUDED.max_uses
-        """, code, reward, max_uses)
-
-
-# =========================
-# DELETE PROMO
-# =========================
-async def delete_promo(code: str):
-
-    async with pool.acquire() as conn:
-        await conn.execute(
-            "DELETE FROM promocodes WHERE code=$1",
-            code.upper()
+        row = await conn.fetchrow(
+            "SELECT last_bonus FROM users WHERE user_id=$1",
+            user_id
         )
 
+        if not row:
+            return False, 0
 
-# =========================
-# ACTIVATE PROMO
-# =========================
-async def activate_promo(user_id: int, code: str):
+        last = float(row["last_bonus"])
+        now = time.time()
 
-    code = code.upper()
+        remaining = BONUS_COOLDOWN - (now - last)
 
+        if remaining <= 0:
+            return True, 0
+
+        return False, int(remaining)
+
+
+async def give_bonus(user_id: int):
     async with pool.acquire() as conn:
-
-        promo = await conn.fetchrow(
-            "SELECT * FROM promocodes WHERE code=$1",
-            code
-        )
-
-        if not promo:
-            return "not_found", 0
-
-        used = await conn.fetchrow("""
-            SELECT 1 FROM promo_activations
-            WHERE user_id=$1 AND code=$2
-        """, user_id, code)
-
-        if used:
-            return "already_used", 0
-
-        if promo["uses"] >= promo["max_uses"]:
-            return "no_uses", 0
-
         await conn.execute("""
-            INSERT INTO promo_activations(user_id, code)
-            VALUES($1,$2)
-        """, user_id, code)
-
-        await conn.execute("""
-            UPDATE promocodes
-            SET uses = uses + 1
-            WHERE code=$1
-        """, code)
-
-        await conn.execute("""
-            UPDATE users
-            SET balance = balance + $1
-            WHERE user_id=$2
-        """, promo["reward"], user_id)
-
-        return "success", float(promo["reward"])
+        UPDATE users
+        SET balance = balance + $1,
+            last_bonus = $2
+        WHERE user
