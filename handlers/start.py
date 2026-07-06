@@ -1,8 +1,13 @@
-from aiogram import Router, F, Bot
+from aiogram import Router, Bot, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    Message,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton
+)
 
-from database import add_user
+from database import add_user, is_banned
 from subscriptions import is_user_subscribed
 from config import SPONSORS
 
@@ -12,45 +17,87 @@ router = Router()
 # =========================
 # КНОПКИ СПОНСОРОВ
 # =========================
-def sponsors_kb():
+def sponsors_keyboard():
+
     buttons = []
 
-    for ch in SPONSORS:
-        url = f"https://t.me/{ch.replace('@', '')}"
-        buttons.append([InlineKeyboardButton(text=f"📢 Подписаться {ch}", url=url)])
+    for sponsor in SPONSORS:
+        buttons.append([
+            InlineKeyboardButton(
+                text=f"📢 {sponsor}",
+                url=f"https://t.me/{sponsor.replace('@','')}"
+            )
+        ])
 
     buttons.append([
-        InlineKeyboardButton(text="✅ Я подписался", callback_data="check_sub")
+        InlineKeyboardButton(
+            text="✅ Проверить подписку",
+            callback_data="check_sub"
+        )
     ])
 
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+    return InlineKeyboardMarkup(
+        inline_keyboard=buttons
+    )
 
 
 # =========================
 # ГЛАВНОЕ МЕНЮ
 # =========================
-
 def main_menu():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
-            InlineKeyboardButton(text="👥 Реферал", callback_data="ref")
-        ],
-        [
-            InlineKeyboardButton(text="💸 Вывод", callback_data="withdraw"),
-            InlineKeyboardButton(text="⭐ Отзывы", callback_data="reviews")
-        ],
-        [
-            InlineKeyboardButton(text="🛠 Техподдержка", callback_data="support"),
-            InlineKeyboardButton(text="ℹ️ Информация", callback_data="info")
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+
+            [
+                InlineKeyboardButton(
+                    text="👤 Профиль",
+                    callback_data="profile"
+                ),
+
+                InlineKeyboardButton(
+                    text="👥 Рефералы",
+                    callback_data="ref"
+                )
+            ],
+
+            [
+                InlineKeyboardButton(
+                    text="💸 Вывод",
+                    callback_data="withdraw"
+                ),
+
+                InlineKeyboardButton(
+                    text="⭐ Отзывы",
+                    callback_data="reviews"
+                )
+            ],
+
+            [
+                InlineKeyboardButton(
+                    text="🛠 Поддержка",
+                    callback_data="support"
+                ),
+
+                InlineKeyboardButton(
+                    text="ℹ️ Информация",
+                    callback_data="info"
+                )
+            ]
         ]
-    ])
+    )
+
 
 # =========================
-# /START
+# START
 # =========================
 @router.message(CommandStart())
 async def start(message: Message, bot: Bot):
+
+    if await is_banned(message.from_user.id):
+        return await message.answer(
+            "⛔ Вы заблокированы."
+        )
 
     await add_user(
         message.from_user.id,
@@ -58,45 +105,43 @@ async def start(message: Message, bot: Bot):
         message.from_user.full_name
     )
 
-    # проверка подписки
-    if not await is_user_subscribed(bot, message.from_user.id):
-        await message.answer(
-            "👋 Чтобы пользоваться ботом, подпишитесь на спонсоров:",
-            reply_markup=sponsors_kb()
-        )
-        return
+    if not await is_user_subscribed(
+        bot,
+        message.from_user.id
+    ):
 
-    await message.answer("🏠 Главное меню", reply_markup=main_menu())
+        return await message.answer(
+            "❗ Для использования бота подпишитесь на всех спонсоров.",
+            reply_markup=sponsors_keyboard()
+        )
+
+    await message.answer(
+        "🏠 Главное меню",
+        reply_markup=main_menu()
+    )
 
 
 # =========================
-# ПРОВЕРКА ПОДПИСОК
+# ПРОВЕРКА ПОДПИСКИ
 # =========================
 @router.callback_query(F.data == "check_sub")
 async def check_sub(call: CallbackQuery, bot: Bot):
 
-    if not await is_user_subscribed(bot, call.from_user.id):
-        await call.answer("❌ Вы не подписаны на всех спонсоров", show_alert=True)
+    if not await is_user_subscribed(
+        bot,
+        call.from_user.id
+    ):
 
-        await call.message.answer(
-            "❌ Вы не подписаны на всех спонсоров!",
-            reply_markup=sponsors_kb()
+        return await call.answer(
+            "❌ Вы подписались не на все каналы.",
+            show_alert=True
         )
-        return
 
-    await call.message.delete()
-    await call.message.answer("🏠 Главное меню", reply_markup=main_menu())
-    await call.answer("✅ Доступ открыт")
+    await call.message.edit_text(
+        "🏠 Главное меню",
+        reply_markup=main_menu()
+    )
 
-
-# =========================
-# БЕЗОПАСНАЯ ПРОВЕРКА (ДЛЯ ДРУГИХ ЭКРАНОВ)
-# =========================
-async def check_access(bot: Bot, message: Message):
-    if not await is_user_subscribed(bot, message.from_user.id):
-        await message.answer(
-            "❌ Сначала подпишитесь на спонсоров:",
-            reply_markup=sponsors_kb()
-        )
-        return False
-    return True
+    await call.answer(
+        "✅ Проверка успешно пройдена!"
+    )
