@@ -480,3 +480,58 @@ async def get_ref_info(user_id: int):
             return 0
 
         return row["referrals"]
+
+# =========================
+# ВРЕМЕННЫЙ РЕФЕРЕР
+# =========================
+
+async def save_referrer(user_id: int, referrer_id: int):
+
+    if user_id == referrer_id:
+        return
+
+    async with pool.acquire() as conn:
+
+        row = await conn.fetchrow(
+            """
+            SELECT referrer_id
+            FROM users
+            WHERE user_id=$1
+            """,
+            user_id
+        )
+
+        if not row:
+            return
+
+        if row["referrer_id"] is not None:
+            return
+
+        await conn.execute(
+            """
+            UPDATE users
+            SET referrer_id=$1
+            WHERE user_id=$2
+            """,
+            referrer_id,
+            user_id
+        )
+
+
+async def get_referrer(user_id: int):
+
+    async with pool.acquire() as conn:
+
+        row = await conn.fetchrow(
+            """
+            SELECT referrer_id
+            FROM users
+            WHERE user_id=$1
+            """,
+            user_id
+        )
+
+        if not row:
+            return None
+
+        return row["referrer_id"]
