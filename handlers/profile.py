@@ -1,12 +1,12 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
+        from aiogram import Router, F
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, Message
 
 from database import (
     get_balance,
     can_take_bonus,
     give_bonus,
-    BONUS_AMOUNT,
-    activate_promo
+    activate_promo,
+    BONUS_AMOUNT
 )
 
 from handlers.start import main_menu
@@ -14,12 +14,13 @@ from handlers.start import main_menu
 router = Router()
 
 # =========================
-# СОСТОЯНИЯ ПОЛЬЗОВАТЕЛЕЙ
+# ВРЕМЕННОЕ СОСТОЯНИЕ
 # =========================
 user_states = {}
 
+
 # =========================
-# КНОПКИ ПРОФИЛЯ
+# КЛАВИАТУРА ПРОФИЛЯ
 # =========================
 def profile_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -34,6 +35,7 @@ def profile_keyboard():
             InlineKeyboardButton(text="⬅️ Назад", callback_data="back_menu")
         ]
     ])
+
 
 # =========================
 # ПРОФИЛЬ
@@ -53,6 +55,7 @@ async def profile(call: CallbackQuery):
 
     await call.message.edit_text(text, reply_markup=profile_keyboard())
     await call.answer()
+
 
 # =========================
 # БОНУС
@@ -74,42 +77,40 @@ async def bonus(call: CallbackQuery):
 
     await give_bonus(call.from_user.id)
 
-    await call.answer(f"🎁 +{BONUS_AMOUNT} Gold", show_alert=True)
+    await call.answer(f"🎁 +{BONUS_AMOUNT} Gold получено!", show_alert=True)
 
     balance = await get_balance(call.from_user.id)
 
-    text = (
-        "👤 <b>ПРОФИЛЬ</b>\n\n"
-        "━━━━━━━━━━━━━━━━━━\n\n"
+    await call.message.edit_text(
+        f"👤 <b>ПРОФИЛЬ</b>\n\n"
+        f"━━━━━━━━━━━━━━━━━━\n\n"
         f"💰 Баланс: <b>{balance:.2f} Gold</b>\n"
-        "👥 Приглашено: <b>0</b>\n\n"
-        "━━━━━━━━━━━━━━━━━━"
+        f"👥 Приглашено: <b>0</b>\n\n"
+        f"━━━━━━━━━━━━━━━━━━",
+        reply_markup=profile_keyboard()
     )
 
-    await call.message.edit_text(text, reply_markup=profile_keyboard())
 
 # =========================
-# ПРОМОКОД (ОТКРЫТЬ ВВОД)
+# НАЖАТИЕ ПРОМОКОДА
 # =========================
 @router.callback_query(F.data == "promo")
 async def promo(call: CallbackQuery):
 
     user_states[call.from_user.id] = "waiting_promo"
 
-    await call.message.edit_text(
+    await call.message.answer(
         "🎫 Введите промокод:\n\n"
-        "или нажмите назад 👇",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_profile")]
-        ])
+        "⬅️ /back — назад в профиль"
     )
 
     await call.answer()
 
+
 # =========================
 # ВВОД ПРОМОКОДА
 # =========================
-@router.message(lambda m: m.from_user.id in user_states and user_states[m.from_user.id] == "waiting_promo")
+@router.message(lambda m: m.text and m.from_user.id in user_states and user_states[m.from_user.id] == "waiting_promo")
 async def handle_promo(message: Message):
 
     code = message.text.strip().upper()
@@ -127,43 +128,26 @@ async def handle_promo(message: Message):
 
     user_states.pop(message.from_user.id, None)
 
-# =========================
-# НАЗАД В ПРОФИЛЬ
-# =========================
-@router.callback_query(F.data == "back_profile")
-async def back_profile(call: CallbackQuery):
-
-    user_states.pop(call.from_user.id, None)
-
-    balance = await get_balance(call.from_user.id)
-
-    text = (
-        "👤 <b>ПРОФИЛЬ</b>\n\n"
-        "━━━━━━━━━━━━━━━━━━\n\n"
-        f"💰 Баланс: <b>{balance:.2f} Gold</b>\n"
-        "👥 Приглашено: <b>0</b>\n\n"
-        "━━━━━━━━━━━━━━━━━━"
-    )
-
-    await call.message.edit_text(text, reply_markup=profile_keyboard())
 
 # =========================
 # ИНСТРУКЦИЯ
 # =========================
 @router.callback_query(F.data == "instruction")
 async def instruction(call: CallbackQuery):
-    await call.answer("Скоро будет 🚀", show_alert=True)
+    await call.answer("Инструкция скоро будет 🚀", show_alert=True)
+
 
 # =========================
-# В МЕНЮ
+# НАЗАД В МЕНЮ
 # =========================
 @router.callback_query(F.data == "back_menu")
 async def back_menu(call: CallbackQuery):
 
-    user_states.pop(call.from_user.id, None)
-
     await call.message.edit_text(
-        "✨ Главное меню",
+        "✨ Добро пожаловать в KIGoldBot!\n\n"
+        "━━━━━━━━━━━━━━━━━━\n\n"
+        "💎 Здесь вы можете зарабатывать Gold\n\n"
+        "━━━━━━━━━━━━━━━━━━",
         reply_markup=main_menu()
     )
 
