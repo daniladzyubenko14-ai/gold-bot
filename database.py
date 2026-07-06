@@ -70,7 +70,7 @@ async def init_db():
 
         )
         """)
-        # =========================
+# =========================
 # ADD USER
 # =========================
 async def add_user(user_id, username, full_name):
@@ -194,7 +194,7 @@ async def give_bonus(user_id: int):
         time.time(),
         user_id
                           )
-        # =========================
+# =========================
 # СОЗДАНИЕ ПРОМОКОДА
 # =========================
 async def create_promo(
