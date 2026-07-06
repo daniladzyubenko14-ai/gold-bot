@@ -43,18 +43,18 @@ async def init_db():
         # PROMOCODES
         # =========================
         await conn.execute("""
-        CREATE TABLE IF NOT EXISTS promocodes (
+CREATE TABLE IF NOT EXISTS promocodes (
 
-            code TEXT PRIMARY KEY,
+    code TEXT PRIMARY KEY,
 
-            reward DOUBLE PRECISION NOT NULL,
+    reward DOUBLE PRECISION NOT NULL,
 
-            max_uses INTEGER NOT NULL,
+    max_uses INTEGER DEFAULT 1,
 
-            uses INTEGER DEFAULT 0
+    uses INTEGER DEFAULT 0
 
-        )
-        """)
+)
+""")
 
         # =========================
         # USED PROMOS
