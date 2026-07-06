@@ -8,14 +8,14 @@ router = Router()
 
 
 # =========================
-# ПРОВЕРКА АДМИНА
+# CHECK ADMIN
 # =========================
-def is_admin(user_id: int):
+def is_admin(user_id: int) -> bool:
     return user_id in ADMINS
 
 
 # =========================
-# СОЗДАТЬ ПРОМОКОД
+# CREATE PROMO
 # /createpromo CODE REWARD LIMIT
 # =========================
 @router.message(F.text.startswith("/createpromo"))
@@ -25,23 +25,33 @@ async def create_promo_cmd(message: Message):
         return await message.answer("⛔ Нет доступа")
 
     try:
-        _, code, reward, limit = message.text.split()
+        parts = message.text.split()
 
-        await create_promo(code, float(reward), int(limit))
+        if len(parts) != 4:
+            return await message.answer("❌ Формат: /createpromo CODE REWARD LIMIT")
 
-        await message.answer(
-            f"✅ Промокод создан:\n\n"
-            f"🔑 {code}\n"
-            f"💰 {reward} Gold\n"
-            f"👥 Лимит: {limit}"
+        _, code, reward, limit = parts
+
+        await create_promo(
+            code=code.upper(),
+            reward=float(reward),
+            max_uses=int(limit)
         )
 
-    except:
-        await message.answer("❌ Формат: /createpromo CODE REWARD LIMIT")
+        await message.answer(
+            f"✅ Промокод создан!\n\n"
+            f"🔑 Код: <b>{code.upper()}</b>\n"
+            f"💰 Награда: <b>{reward} Gold</b>\n"
+            f"👥 Лимит: <b>{limit}</b>",
+        )
+
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {e}")
 
 
 # =========================
-# УДАЛИТЬ ПРОМОКОД
+# DELETE PROMO
+# /delpromo CODE
 # =========================
 @router.message(F.text.startswith("/delpromo"))
 async def delete_promo_cmd(message: Message):
@@ -50,17 +60,23 @@ async def delete_promo_cmd(message: Message):
         return await message.answer("⛔ Нет доступа")
 
     try:
-        _, code = message.text.split()
+        parts = message.text.split()
+
+        if len(parts) != 2:
+            return await message.answer("❌ Формат: /delpromo CODE")
+
+        _, code = parts
+
         await delete_promo(code)
 
-        await message.answer(f"🗑 Удалён: {code}")
+        await message.answer(f"🗑 Удалён промокод: <b>{code.upper()}</b>")
 
-    except:
-        await message.answer("❌ Формат: /delpromo CODE")
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {e}")
 
 
 # =========================
-# СПИСОК ПРОМОКОДОВ
+# LIST PROMOS
 # =========================
 @router.message(F.text == "/promos")
 async def list_promos(message: Message):
@@ -71,14 +87,14 @@ async def list_promos(message: Message):
     promos = await get_promos()
 
     if not promos:
-        return await message.answer("Промокодов нет")
+        return await message.answer("📭 Промокодов нет")
 
     text = "📋 <b>Промокоды:</b>\n\n"
 
     for p in promos:
         text += (
-            f"🔑 {p['code']}\n"
-            f"💰 {p['reward']}\n"
+            f"🔑 <b>{p['code']}</b>\n"
+            f"💰 {p['reward']} Gold\n"
             f"👥 {p['uses']}/{p['max_uses']}\n\n"
         )
 
