@@ -21,12 +21,12 @@ def sponsors_kb():
 
     buttons = []
 
-    for sponsor in SPONSORS:
+    for i, sponsor in enumerate(SPONSORS, start=1):
 
         buttons.append([
             InlineKeyboardButton(
-                text=f"📢 {sponsor}",
-                url=f"https://t.me/{sponsor.replace('@','')}"
+                text=f"📢 Спонсор {i}",
+                url=f"https://t.me/{sponsor.replace('@', '')}"
             )
         ])
 
