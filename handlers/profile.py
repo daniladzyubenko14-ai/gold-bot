@@ -34,15 +34,35 @@ async def profile(call: CallbackQuery):
     )
     await call.answer()
 
-@router.callback_query(F.data=="bonus")
+@router.callback_query(F.data == "bonus")
 async def bonus(call: CallbackQuery):
-    ok,left=await can_take_bonus(call.from_user.id)
+
+    ok, left = await can_take_bonus(call.from_user.id)
+
     if not ok:
-        await call.answer("⏳ Бонус пока недоступен.",show_alert=True)
+
+        hours = left // 3600
+        minutes = (left % 3600) // 60
+
+        await call.answer(
+            f"⏳ Осталось {hours}ч {minutes}м",
+            show_alert=True
+        )
         return
+
     await give_bonus(call.from_user.id)
-    await call.answer(f"🎁 +{BONUS_AMOUNT} Gold",show_alert=True)
-    await profile(call)
+
+    balance = await get_balance(call.from_user.id)
+
+    await call.message.edit_text(
+        f"👤 <b>ПРОФИЛЬ</b>\n\n💰 Баланс: <b>{balance:.2f} Gold</b>",
+        reply_markup=profile_keyboard()
+    )
+
+    await call.answer(
+        f"🎁 Получено +{BONUS_AMOUNT} Gold",
+        show_alert=True
+    )
 
 @router.callback_query(F.data=="promo")
 async def promo(call: CallbackQuery,state:FSMContext):
