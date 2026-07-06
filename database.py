@@ -293,7 +293,7 @@ async def get_promos():
         FROM promocodes
         ORDER BY code
         """)
-        # =========================
+# =========================
 # РЕФЕРАЛЬНАЯ СИСТЕМА
 # =========================
 
@@ -355,7 +355,7 @@ async def reward_referrer(user_id: int):
             referrals = referrals + 1
         WHERE user_id=$2
         """,
-        REF_REWARD,
+        2.0,  # 👈 вот тут 2 Gold
         row["referrer_id"]
         )
 
@@ -365,8 +365,7 @@ async def reward_referrer(user_id: int):
         WHERE user_id=$1
         """,
         user_id
-        )
-
+                          )
 
 async def get_ref_info(user_id: int):
 
