@@ -134,18 +134,48 @@ async def bonus(call: CallbackQuery):
 # ПРОМОКОД
 # =========================
 @router.callback_query(F.data == "promo")
-async def promo(call: CallbackQuery, state: FSMContext):
+async def promo(call: CallbackQuery):
 
-    await state.set_state(
-        PromoState.waiting_code
-    )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="⬅️ Назад",
+                callback_data="promo_back"
+            )
+        ]
+    ])
 
-    await call.message.answer(
-        "🎫 <b>Активация промокода</b>\n\n"
-        "Введите промокод одним сообщением."
+    await call.message.edit_text(
+        "🎫 <b>Введите промокод:</b>",
+        reply_markup=keyboard
     )
 
     await call.answer()
+
+
+# =========================
+# НАЗАД ИЗ ПРОМОКОДА
+# =========================
+@router.callback_query(F.data == "promo_back")
+async def promo_back(call: CallbackQuery):
+
+    balance = await get_balance(call.from_user.id)
+
+    text = (
+        "👤 <b>ПРОФИЛЬ</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━\n\n"
+        f"💰 Баланс: <b>{balance:.2f} Gold</b>\n"
+        "👥 Приглашено: <b>0</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━"
+    )
+
+    await call.message.edit_text(
+        text,
+        reply_markup=profile_keyboard()
+    )
+
+    await call.answer()
+
  # =========================
 # ВВОД ПРОМОКОДА
 # =========================
