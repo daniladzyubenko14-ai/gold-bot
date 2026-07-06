@@ -4,20 +4,26 @@ import os
 
 from config import START_BALANCE
 
-
-# =========================
-# DATABASE POOL
-# =========================
 pool = None
 
+BONUS_AMOUNT = 0.5
+BONUS_COOLDOWN = 12 * 60 * 60
+
 
 # =========================
-# INIT DB
+# INIT DATABASE
 # =========================
 async def init_db():
     global pool
 
     DATABASE_URL = os.getenv("DATABASE_URL")
+
+    print("=" * 60)
+    print("DATABASE_URL =", DATABASE_URL)
+    print("=" * 60)
+
+    if not DATABASE_URL:
+        raise RuntimeError("❌ DATABASE_URL не найден! Проверь Variables в Railway.")
 
     pool = await asyncpg.create_pool(DATABASE_URL)
 
@@ -28,7 +34,7 @@ async def init_db():
             username TEXT,
             full_name TEXT,
             balance DOUBLE PRECISION DEFAULT 0,
-            banned INT DEFAULT 0,
+            banned INTEGER DEFAULT 0,
             last_bonus DOUBLE PRECISION DEFAULT 0
         )
         """)
@@ -47,15 +53,27 @@ async def add_user(user_id, username, full_name):
 
         if not user:
             await conn.execute("""
-                INSERT INTO users (user_id, username, full_name, balance, last_bonus)
-                VALUES ($1, $2, $3, $4, $5)
-            """, user_id, username, full_name, float(START_BALANCE), 0.0)
+                INSERT INTO users (
+                    user_id,
+                    username,
+                    full_name,
+                    balance,
+                    last_bonus
+                )
+                VALUES ($1,$2,$3,$4,$5)
+            """,
+            user_id,
+            username,
+            full_name,
+            float(START_BALANCE),
+            0.0
+            )
 
 
 # =========================
 # BALANCE
 # =========================
-async def get_balance(user_id: int):
+async def get_balance(user_id):
     async with pool.acquire() as conn:
 
         row = await conn.fetchrow(
@@ -69,24 +87,23 @@ async def get_balance(user_id: int):
         return round(float(row["balance"]), 2)
 
 
-async def add_balance(user_id: int, amount: float):
+async def add_balance(user_id, amount):
     async with pool.acquire() as conn:
 
         await conn.execute("""
             UPDATE users
             SET balance = balance + $1
             WHERE user_id=$2
-        """, float(amount), user_id)
+        """,
+        float(amount),
+        user_id
+        )
 
 
 # =========================
-# BONUS SYSTEM
+# BONUS
 # =========================
-BONUS_AMOUNT = 0.5
-BONUS_COOLDOWN = 12 * 60 * 60  # 12 часов
-
-
-async def can_take_bonus(user_id: int):
+async def can_take_bonus(user_id):
     async with pool.acquire() as conn:
 
         row = await conn.fetchrow(
@@ -95,6 +112,7 @@ async def can_take_bonus(user_id: int):
         )
 
         last = float(row["last_bonus"]) if row else 0.0
+
         now = time.time()
 
         remaining = BONUS_COOLDOWN - (now - last)
@@ -105,7 +123,7 @@ async def can_take_bonus(user_id: int):
         return False, int(remaining)
 
 
-async def give_bonus(user_id: int):
+async def give_bonus(user_id):
     async with pool.acquire() as conn:
 
         await conn.execute("""
@@ -113,4 +131,8 @@ async def give_bonus(user_id: int):
             SET balance = balance + $1,
                 last_bonus = $2
             WHERE user_id=$3
-        """, BONUS_AMOUNT, time.time(), user_id)
+        """,
+        BONUS_AMOUNT,
+        time.time(),
+        user_id
+                          )
